@@ -13,7 +13,7 @@ async function parseJsonResponse(res) {
   const trimmed = text.trim();
   if (trimmed.startsWith('<')) {
     throw new Error(
-      "Le serveur a renvoyé une page au lieu de l'API. En production, définissez VITE_API_URL avec l'URL complète du backend (ex: https://votre-backend.onrender.com)."
+      "Le serveur a renvoyé une"
     );
   }
   try {
