@@ -1,0 +1,3 @@
+# SPA fallback : toutes les routes renvoient index.html (200) pour que le routage client fonctionne
+# Utilisé par certains hébergeurs (Netlify utilise plutôt le fichier public/_redirects)
+/*    /index.html   200
