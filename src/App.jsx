@@ -7,6 +7,22 @@ const TOKEN_KEY = 'gp_admin_token';
 const USER_KEY = 'gp_admin_user';
 const TODAY_STR = new Date().toISOString().slice(0, 10);
 
+/** Parse une réponse en JSON ; si le serveur renvoie du HTML (SPA fallback), lance une erreur claire. */
+async function parseJsonResponse(res) {
+  const text = await res.text();
+  const trimmed = text.trim();
+  if (trimmed.startsWith('<')) {
+    throw new Error(
+      "Le serveur a renvoyé une page au lieu de l'API. En production, définissez VITE_API_URL avec l'URL complète du backend (ex: https://votre-backend.onrender.com)."
+    );
+  }
+  try {
+    return trimmed ? JSON.parse(text) : null;
+  } catch (e) {
+    throw new Error("Réponse du serveur invalide.");
+  }
+}
+
 function App() {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
   const [user, setUser] = useState(() => {
@@ -26,9 +42,13 @@ function App() {
   useEffect(() => {
     if (!token) return;
     fetch(`${API_BASE_URL}/auth/me`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((res) => (res.ok ? res.json() : Promise.reject()))
+      .then(async (res) => {
+        const data = await parseJsonResponse(res);
+        if (!res.ok) throw new Error(data?.message || 'Erreur');
+        return data;
+      })
       .then((data) => {
-        const u = data.user;
+        const u = data?.user;
         if (u && (u.role === 'admin' || u.role === 'gestionnaire')) {
           setUser(u);
           localStorage.setItem(USER_KEY, JSON.stringify(u));
@@ -580,12 +600,12 @@ function AuthPanel({ apiBase, onAuthSuccess }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: form.email, password: form.password }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Erreur de connexion');
+      const data = await parseJsonResponse(res);
+      if (!res.ok) throw new Error(data?.message || 'Erreur de connexion');
       onAuthSuccess(data);
     } catch (err) {
       console.error(err);
-      setError(err.message);
+      setError(err.message || "Impossible de joindre le serveur. Vérifiez l'URL de l'API.");
     } finally {
       setLoading(false);
     }
